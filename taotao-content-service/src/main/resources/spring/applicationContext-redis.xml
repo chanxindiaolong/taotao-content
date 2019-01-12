@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+	http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd
+	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.2.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.2.xsd
+	http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd
+	http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.2.xsd">
+
+	<context:annotation-config />
+	<!-- redis单机版 -->
+	<bean id="jedisPool" class="redis.clients.jedis.JedisPool">
+		<constructor-arg name="host" value="192.168.25.153" />
+		<constructor-arg name="port" value="6379" />
+	</bean>
+	<bean id="jedisClientPool"
+		class="com.taotao.jedis.JedisClientPool" />
+
+	<bean id="contentRedisHandeler"
+		class="com.taotao.content.ContentRedisHandler" />
+	<aop:config>
+		<aop:aspect id="contentRedisAspect"
+			ref="contentRedisHandeler">
+			<aop:pointcut id="updateContentMethod"
+				expression="execution(* com.taotao.content.service.ContentService.* (..)) and !execution(* com.taotao.content.service.ContentService.get* (..))" />
+			<aop:after-returning method="addRedisAfterUpdateContent"
+				pointcut-ref="updateContentMethod" returning="cid"/>
+		</aop:aspect>
+		<aop:aspect id="contentRedisAspect"
+			ref="contentRedisHandeler">
+			<aop:pointcut id="getContentListByCid"
+				expression="execution(* com.taotao.content.service.ContentService.getContentListByCid (..))" />
+			<aop:after-returning
+				method="addRedisAfterGetContentList"
+				pointcut-ref="getContentListByCid" returning="resultList" />
+		</aop:aspect>
+		<!-- <aop:aspect id="contentRedisAspect"
+			ref="contentRedisHandeler">
+			<aop:pointcut id="getContentListByCid"
+				expression="execution(* com.taotao.content.service.ContentService.getContentListByCid (..))" />
+			<aop:before method="addRedisBeforeGetContentList"
+				pointcut-ref="getContentListByCid"  />
+		</aop:aspect> -->
+	</aop:config>
+</beans>
